@@ -1,9 +1,23 @@
 builder:
   source_main_path: "/java/"
   docker_main_path: "/home/arb/pragmatic/docker-bp"
+  build_template: "docker run -it --rm --name maven{src_dir} --add-host jenkins.gametechlabs.net:172.16.10.3 -v {src_base_dir}:/{src_base_dir} -v /home/arb/infrastructure/maven/:/root/.m2 maven:3.3-jdk-8 bash -c \"cd {src_base_dir}/{src_dir} && mvn clean package\""
   services:
     bingo:
       project_dir: "bingo-gameserver"
-#      type: "maven"
       git: "git@gitlab.gametechlabs.net:bingo/bingo-gameserver.git"
       branch: "feature/BIN-182_Identification__for_player_actions_through_all_components"
+      after_build: "cp /java/bingo-gameserver/target/bingo-game-server.jar /home/arb/pragmatic/docker-bp/platform/bingo/apps/bingo-game-server.jar && rdc bingo"
+      
+    userservice:
+      project_dir: "bingo-user-service"
+      git: "git@gitlab.gametechlabs.net:bingo/bingo-user-service.git"
+      branch: "feature/BIN-182_Identification__for_player_actions_through_all_components"
+      after_build: "cp /java/bingo-user-service/target/userservice-0.0.1.jar /home/arb/pragmatic/docker-bp/platform/userservice/apps/userservice-0.0.1-SNAPSHOT.jar && rdc userservice"
+
+    integrationservice:
+      project_dir: "bingo-integration-service"
+      git: "git@gitlab.gametechlabs.net:bingo/bingo-integration-service.git"
+      branch: "feature/BIN-182_Identification__for_player_actions_through_all_components"
+      after_build: "cp /java/bingo-integration-service/target/integration-service.jar /home/arb/pragmatic/docker-bp/platform/integration-service/apps/integration-service.jar && rdc integration-service"
+    
