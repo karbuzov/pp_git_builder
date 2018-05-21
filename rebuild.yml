@@ -1,0 +1,9 @@
+builder:
+  source_main_path: "/java/"
+  docker_main_path: "/home/arb/pragmatic/docker-bp"
+  services:
+    bingo:
+      project_dir: "bingo-gameserver"
+#      type: "maven"
+      git: "git@gitlab.gametechlabs.net:bingo/bingo-gameserver.git"
+      branch: "feature/BIN-182_Identification__for_player_actions_through_all_components"
