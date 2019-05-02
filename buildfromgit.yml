@@ -1,0 +1,54 @@
+---
+#  - set_fact: force="false"
+
+  
+#  - debug:
+#      var: branch
+- hosts: localhost
+  gather_facts: no
+  
+  
+  tasks:
+      - name: Get {{ app }}
+        git:
+          repo: "git@gitlab.gametechlabs.net:bingo/{{ app }}.git"
+          dest: "/java/{{ app }}"
+          clone: yes
+          force: yes
+          version: "{{ branch }}"
+        ignore_errors: yes
+        register: data_changed
+        
+    #  - debug:
+    #      var: data_changed
+        #git clean  -d  -fx ""
+
+      - name: fix git for {{ app }}
+        command: "git clean  -d  -fx"
+        args:
+          chdir: "/java/{{ app }}"
+        when: data_changed.failed == True
+
+      - stat: path=/java/{{ app }}/target/
+        register: build_art
+
+      - name: build {{ app }}
+        command: docker run -t --rm --name maven --add-host jenkins.gametechlabs.net:172.16.10.3 -v /java:/java -v /home/arb/infrastructure/maven/:/root/.m2 maven:3.3-jdk-8 bash -c "cd /java/{{ app }} && mvn -s /root/.m2/settings.xml clean package -Dmaven.test.skip=true"
+        args:
+          chdir: /root/docker-bp/
+        when: (force == "true") or (build_art.stat.exists != True) or(data_changed.before != data_changed.after)
+
+        #war and jar end with "*ar" :)
+      - name: Copy each file over that matches the given pattern {{ app }}
+        copy:
+          src: "{{ item }}"
+          dest: "/root/docker-bp/platform/{{ localdir }}/apps/"
+        check_mode: no
+        with_fileglob:
+          - "/java/{{ app }}/target/*ar"
+
+      - name: restart {{ app }}
+        shell: |
+          docker-compose restart -t 1 {{ dockername }} | docker-compose up -d {{ dockername }}
+          rm -f /root/docker-bp/rebuild.retry
+        when: (force == "true") or (data_changed.before != data_changed.after)
